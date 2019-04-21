@@ -47,7 +47,7 @@
         this.load.image('ground', 'http://labs.phaser.io/assets/sprites/platform.png');
         this.load.image('star', 'http://labs.phaser.io/assets/sprites/melon.png');
         this.load.image('bomb', 'http://labs.phaser.io/assets/sprites/aqua_ball.png');
-        this.load.image('squid', 'assets/imgs/squid-character.png');
+        this.load.spritesheet('squid', 'assets/imgs/full-squid-sheet.png', {frameWidth: 58, frameHeight: 97});
     }
 
     function create ()
@@ -67,6 +67,22 @@
 
         player.setBounce(0.2);
         player.setCollideWorldBounds(true);
+
+        this.anims.create({
+            key: 'squid-idle',
+            frames: this.anims.generateFrameNumbers('squid', { start: 0, end: 3 }),
+            frameRate: 20,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'squid-shoot',
+            frames: this.anims.generateFrameNumbers('squid', { start: 4, end: 7 }),
+            frameRate: 20,
+            repeat: -1
+        });
+
+        player.anims.play('squid-idle');
 
         /*this.anims.create({
             key: 'left',
