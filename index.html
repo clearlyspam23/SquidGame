@@ -21,7 +21,7 @@
         physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            //gravity: { y: 300 },
             debug: false
         }
     },
@@ -32,22 +32,34 @@
         }
     };
 
+    const FIRING_DELAY = 9;
+
     var game = new Phaser.Game(config);
     var player;
     var cursors;
     var score = 0;
     var scoreText;
     var bullets;
+    var spoders;
+    var fireButton;
+    var upKey;
+    var downKey;
+    var leftKey;
+    var rightKey;
+
+    var bulletDelay = 0;
 
     function preload ()
     {
         //this.load.setBaseURL('http://labs.phaser.io');
 
-        this.load.image('sky', 'http://labs.phaser.io/assets/skies/cavern1.png');
+        this.load.image('sky', 'http://labs.phaser.io/assets/skies/deepblue.png');
         this.load.image('ground', 'http://labs.phaser.io/assets/sprites/platform.png');
         this.load.image('star', 'http://labs.phaser.io/assets/sprites/melon.png');
         this.load.image('bomb', 'http://labs.phaser.io/assets/sprites/aqua_ball.png');
         this.load.spritesheet('squid', 'assets/imgs/full-squid-sheet.png', {frameWidth: 58, frameHeight: 97});
+        this.load.image('spoder', 'assets/imgs/spoder.png');
+        this.load.image('bullet', 'assets/imgs/squid-projectile.png');
     }
 
     function create ()
@@ -109,29 +121,59 @@
         this.physics.add.collider(player, platforms);   
 
         cursors = this.input.keyboard.createCursorKeys();
+        fireButton = this.input.keyboard.addKey('SPACE');
+        upKey = this.input.keyboard.addKey('W');
+        downKey = this.input.keyboard.addKey('S');
+        leftKey = this.input.keyboard.addKey('A');
+        rightKey = this.input.keyboard.addKey('D');
+        console.log(fireButton);
+        //var fireButton = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         spoders = this.physics.add.group({
-            key: 'spoders',
-            repeat: 5,
+            key: 'spoder',
+            repeat: 11,
             setXY: { x: 12, y: 0, stepX: 100 }
         });
 
         spoders.children.iterate(function (spoder) {
             spoder.setCollideWorldBounds(true);
             this.physics.add.collider(spoder, platforms);
-            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+            spoder.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+            spoder.setVelocityY(Phaser.Math.FloatBetween(200, 500));
+            spoder.setScale(0.25, 0.25);
         }.bind(this));    
 
         this.physics.add.overlap(player, spoders, youDied, null, this);
 
-        function burnItWithFire (player, spoders) 
+        bullets = this.physics.add.group({
+            key: 'bullet'
+        });
+
+        this.physics.add.overlap(bullets, spoders, commenceRoasting, null, this);
+
+//         function fireBullet () {
+
+//         //  To avoid them being allowed to fire too fast we set a time limit
+//         if (game.time.now > bulletTime)
+//         {
+//             //  Grab the first bullet we can from the pool
+//             bullet = bullets.getFirstExists(false);
+
+//             if (bullet)
+//             {
+//                 //  And fire it
+//                 bullet.reset(player.x, player.y + 8);
+//                 bullet.body.velocity.y = -400;
+//                 bulletTime = game.time.now + 200;
+//             }
+//         }
+
+// }
+
+        /*function burnItWithFire (player, spoders) 
         {
-            this.physics.add.overlap(bullets, spoders, youDied, null, this);
 
-            spoders.disableBody(true, true);
-
-            score += 10;
-            scoreText.setText('Score: ' + score);
+            
             
             if (spoders.countActive(true) === 0)
             {
@@ -143,13 +185,27 @@
 
                 var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
 
-                var bomb = bombs.create(x, 16, 'bomb');
+                /*var bomb = bombs.create(x, 16, 'bomb');
                 bomb.setBounce(1);
                 bomb.setCollideWorldBounds(true);
                 bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
 
             }
+            if (cursors.left.isDown)
+            {
+                xVelo += -speed;
+            }
+        }*/
+
+
+        function commenceRoasting (player, spoders){
+            score += 10;
+            scoreText.setText('Score: ' + score);
+
+            spoders.disableBody(true, true);
         }
+
+        // function shooting (button)
 
         //bomb stuff
         /*bombs = this.physics.add.group();
@@ -174,29 +230,66 @@
 
     function update ()
     {
-        /*if (cursors.left.isDown)
-        {
-            player.setVelocityX(-160);
+        var xVelo = 0;
+        var yVelo = 0;
 
-            player.anims.play('left', true);
-        }
-        else if (cursors.right.isDown)
-        {
-            player.setVelocityX(160);
+        bulletDelay = Math.max(0, bulletDelay-1);
 
-            player.anims.play('right', true);
-        }
-        else
-        {
-            player.setVelocityX(0);
-
-            player.anims.play('turn');
+        if(bulletDelay == 0) {
+            player.anims.play('squid-idle', true);
         }
 
-        if (cursors.up.isDown && player.body.touching.down)
+        const speed = 300;
+        if (cursors.left.isDown || leftKey.isDown)
         {
-            player.setVelocityY(-500);
-        }*/
+            xVelo += -speed;
+        }
+        if (cursors.right.isDown || rightKey.isDown)
+        {
+            xVelo += speed;
+        }
+
+        if (cursors.down.isDown || downKey.isDown)
+        {
+            yVelo += speed;
+        }
+        if (cursors.up.isDown || upKey.isDown)
+        {
+            yVelo += -speed;
+        }
+        if (fireButton.isDown && bulletDelay == 0)
+        {
+            player.anims.play('squid-shoot');
+            var bullet = bullets.create(player.x, player.y, 'bullet');
+            bullet.setVelocityY(-500);
+            bulletDelay = FIRING_DELAY;
+            console.log('blap blap');
+            
+        }
+        player.setVelocity(xVelo, yVelo);
+        // if (cursors.left.isDown)
+        // {
+        //     player.setVelocityX(-160);
+
+        //     player.anims.play('left', true);
+        // }
+        // else if (cursors.right.isDown)
+        // {
+        //     player.setVelocityX(160);
+
+        //     player.anims.play('right', true);
+        // }
+        // else
+        // {
+        //     player.setVelocityX(0);
+
+        //     player.anims.play('turn');
+        // }
+
+        // if (cursors.up.isDown && player.body.touching.down)
+        // {
+        //     player.setVelocityY(-500);
+        // }
     }
 
 </script>
